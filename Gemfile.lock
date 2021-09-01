@@ -1,0 +1,31 @@
+GIT
+  remote: https://github.com/Roman2K/metacli.git
+  revision: 28d4ca7a3f9975f1087d3612fd4eb002db345f5c
+  specs:
+    metacli (0.1.0)
+
+GIT
+  remote: https://github.com/Roman2K/utils-ruby.git
+  revision: 3865428daf42f7fe320cee4e16038ce43223a909
+  specs:
+    utils-ruby (0.1.0)
+      net_http_unix (~> 0.2)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    net_http_unix (0.2.2)
+    nokogiri (1.12.4-x86_64-linux)
+      racc (~> 1.4)
+    racc (1.5.2)
+
+PLATFORMS
+  x86_64-linux
+
+DEPENDENCIES
+  metacli!
+  nokogiri
+  utils-ruby!
+
+BUNDLED WITH
+   2.2.26
