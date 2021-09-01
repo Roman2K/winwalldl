@@ -27,6 +27,7 @@ class Scraper
     doc.
       css("#ID0EBD-supTabControlContent-1 .ocpSection[aria-label]").
       each { |el| (title, links = scrape_cat_el el) and cats[title] = links }
+    cats.size >= 3 or raise "too few categories found"
 
     q = Queue.new
     thrs = Array.new 4 do
@@ -36,7 +37,6 @@ class Scraper
       end
     end
 
-    count = 0
     cats.each do |title, links|
       filetree = @filetree_t.new title
       dir = filetree.parent_dir(@dest_dir)
@@ -94,18 +94,17 @@ class Downloader
     written = 0
     http.get "" do |resp|
       resp['content-type'] =~ /^image\/(\w+)/i \
-        or raise "image content-type not found"
+        or raise "response is not an image"
       ext = $1.downcase
       out, tmp = "#{@link.title} - #{@link.image_id}.#{ext}".then do |filename|
         filename = @filetree.basename filename
         [ @dest_dir.join(filename),
           @dest_dir.join(filename + TMP_EXTNAME) ]
       end
-      tmp.open 'w' do |f|
+      tmp.open 'wb' do |f|
         @log[dest: f.path].info "downloading"
         resp.read_body do |chunk|
-          f.write chunk
-          written += chunk.bytesize
+          written += f.write chunk
         end
       end
       File.rename tmp, out
