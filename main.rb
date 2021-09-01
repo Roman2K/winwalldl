@@ -4,16 +4,18 @@ require 'nokogiri'
 module Cmds
   URL = "https://support.microsoft.com/en-us/windows/wallpapers-5cfa0cc7-b75a-165a-467b-c95abaf5dc2a"
 
-  def self.cmd_dl(dest_dir: "out")
+  def self.cmd_dl(dest_dir: "out", cat_dirs: true)
     log = Utils::Log.new level: ENV["DEBUG"] == "1" ? :debug : :info
-    Scraper.new(URL, dest_dir, log: log).scrape
+    filetree_t = cat_dirs ? Filetree::CatDirs : Filetree::Flat
+    Scraper.new(URL, dest_dir, filetree_t, log: log).scrape
   end
 end
 
 class Scraper
-  def initialize(url, dest_dir, log:)
+  def initialize(url, dest_dir, filetree_t, log:)
     @url = url
     @dest_dir = Pathname dest_dir
+    @filetree_t = filetree_t
     @log = log
   end
 
@@ -36,11 +38,14 @@ class Scraper
 
     count = 0
     cats.each do |title, links|
-      dir = @dest_dir.join title
-      dir.mkdir unless dir.directory?
+      filetree = @filetree_t.new title
+      dir = filetree.parent_dir(@dest_dir)
+      dir.mkdir if dir != @dest_dir && !dir.directory?
       links.each do |l|
         q << -> {
-          Downloader.new(dir, l, log: @log["#{title}/#{l.title}"]).download
+          d = Downloader.new dir, l, filetree: filetree,
+            log: @log["#{title}/#{l.title}"]
+          d.download
         }
       end
       @log[title].info "enqueued #{links.size} download jobs"
@@ -73,9 +78,10 @@ ImageLink = Struct.new :title, :uri do
 end
 
 class Downloader
-  def initialize(dest_dir, link, log:)
+  def initialize(dest_dir, link, filetree:, log:)
     @dest_dir = dest_dir
     @link = link
+    @filetree = filetree
     @log = log
   end
 
@@ -91,6 +97,7 @@ class Downloader
         or raise "image content-type not found"
       ext = $1.downcase
       out, tmp = "#{@link.title} - #{@link.image_id}.#{ext}".then do |filename|
+        filename = @filetree.basename filename
         [ @dest_dir.join(filename),
           @dest_dir.join(filename + TMP_EXTNAME) ]
       end
@@ -112,6 +119,22 @@ class Downloader
     @dest_dir.glob("* - #{@link.image_id}.*").
       reject { |f| f.extname == TMP_EXTNAME }.
       first
+  end
+end
+
+module Filetree
+  class Basic
+    def initialize(cat_title)
+      @cat_title = cat_title
+    end
+  end
+  class Flat < Basic
+    def parent_dir(root); root end
+    def basename(filename); "#{@cat_title} - #{filename}" end
+  end
+  class CatDirs < Basic
+    def parent_dir(root); root.join @cat_title end
+    def basename(filename); filename end
   end
 end
 
