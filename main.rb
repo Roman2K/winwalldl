@@ -19,9 +19,27 @@ class Scraper
     @log = log
   end
 
+  private def get_html
+    url = URI @url
+    attempt = 0
+    loop do
+      attempt += 1
+      resp = begin
+        Utils::SimpleHTTP.new(url, log: @log["http"]).get("")
+      rescue Utils::SimpleHTTP::UnexpectedRespError => err
+        raise unless Net::HTTPRedirection === err.resp
+        raise "too many redirects" if attempt >= 5
+        loc = err.resp["location"] or raise "missing redirect Location"
+        url = url.merge URI(loc)
+        @log[url: url].info "following redirect"
+        next
+      end
+      return resp.body
+    end
+  end
+
   def scrape
-    doc = Nokogiri::HTML.parse \
-      Utils::SimpleHTTP.new(@url, log: @log["http"]).get("").body
+    doc = Nokogiri::HTML.parse get_html
 
     cats = {}
     doc.
