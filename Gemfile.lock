@@ -15,9 +15,9 @@ GEM
   remote: https://rubygems.org/
   specs:
     net_http_unix (0.2.2)
-    nokogiri (1.12.4-x86_64-linux)
+    nokogiri (1.13.6-x86_64-linux)
       racc (~> 1.4)
-    racc (1.5.2)
+    racc (1.6.0)
 
 PLATFORMS
   x86_64-linux

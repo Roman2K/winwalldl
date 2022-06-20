@@ -1,9 +1,13 @@
+FROM ruby:3.0.2-alpine3.14 AS ruby-base
+
+RUN apk --update upgrade
+
 # --- Build image
-FROM ruby:3.0.2-alpine3.14 AS builder
+FROM ruby-base
 WORKDIR /app
 
 # bundle install deps
-RUN apk add --update ca-certificates git build-base openssl-dev
+RUN apk add ca-certificates git build-base openssl-dev
 RUN gem install bundler -v '>= 2'
 
 # bundle install
@@ -14,8 +18,8 @@ RUN bundle
 FROM ruby:3.0.2-alpine3.14
 WORKDIR /app
 
-COPY --from=builder /usr/local/bundle /usr/local/bundle
-RUN apk --update upgrade && apk add --no-cache ca-certificates
+COPY --from=1 /usr/local/bundle /usr/local/bundle
+RUN apk add ca-certificates
 
 COPY . .
 RUN addgroup -g 1000 -S app \
